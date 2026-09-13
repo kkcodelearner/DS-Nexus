@@ -1,0 +1,141 @@
+import { Loader2, Save, User as UserIcon } from "lucide-react";
+import { useState } from "react";
+import api from "../api/axios";
+
+const ProfileForm = ({ initialData, onSuccess }) => {
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState("");
+    const [message, setMessage] = useState("");
+    const [name, setName] = useState(
+        initialData.name ||
+        `${initialData.firstName || ""} ${initialData.lastName || ""}`.trim() ||
+        "Admin"
+    );
+
+    const isAdmin = initialData.isAdmin || initialData.position === "Administrator";
+
+    const handleSubmit = async (e: any) => {
+        e.preventDefault();
+        setLoading(true);
+        setError("");
+        setMessage("");
+        const formData = new FormData(e.currentTarget);
+        const payload: Record<string, any> = {
+            bio: formData.get("bio"),
+        };
+        if (isAdmin) {
+            payload.name = name;
+            payload.firstName = name;
+        }
+
+        try {
+            await api.post("/profile", payload);
+            setMessage("Profile updated successfully");
+            onSuccess?.();
+        } catch (err: any) {
+            setError(err.response?.data?.error || "Failed to update profile");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    return (
+        <form onSubmit={handleSubmit} className="card p-5 sm:p-6 mb-6">
+            <h2 className="text-base font-medium text-slate-900 mb-6 pb-4 border-b border-slate-100 flex items-center gap-2">
+                <UserIcon className="w-5 h-5 text-slate-400" /> Public Profile
+            </h2>
+
+            {error && (
+                <div className="bg-rose-50 text-rose-700 p-4 rounded-xl text-sm border border-rose-200 mb-6 flex items-start gap-3">
+                    <div className="w-1.5 h-1.5 rounded-full bg-rose-500 mt-1.5 shrink-0" />
+                    {error}
+                </div>
+            )}
+            {message && (
+                <div className="bg-emerald-50 text-emerald-700 p-4 rounded-xl text-sm border border-emerald-200 mb-6 flex items-start gap-3">
+                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 mt-1.5 shrink-0" />
+                    {message}
+                </div>
+            )}
+
+            <div className="space-y-5">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-2">Name</label>
+                        {isAdmin ? (
+                            <input
+                                type="text"
+                                name="name"
+                                value={name}
+                                onChange={(e) => setName(e.target.value)}
+                                placeholder="Enter your name"
+                                className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-900 focus:outline-none focus:border-indigo-500"
+                                required
+                            />
+                        ) : (
+                            <input
+                                disabled
+                                value={`${initialData.firstName || ""} ${initialData.lastName || ""}`.trim()}
+                                className="w-full bg-slate-50 text-slate-500 border border-slate-200 rounded-lg px-3 py-2 text-sm cursor-not-allowed"
+                            />
+                        )}
+                        {isAdmin && (
+                            <p className="text-[11px] text-slate-400 mt-1">This name appears in your sidebar and system notifications.</p>
+                        )}
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-2">Email</label>
+                        <input
+                            disabled
+                            value={initialData.email || ""}
+                            className="w-full bg-slate-50 text-slate-500 border border-slate-200 rounded-lg px-3 py-2 text-sm cursor-not-allowed"
+                        />
+                    </div>
+                    <div className="sm:col-span-2">
+                        <label className="block text-sm font-medium text-slate-700 mb-2">Position</label>
+                        <input
+                            disabled
+                            value={initialData.position || (isAdmin ? "Administrator" : "Employee")}
+                            className="w-full bg-slate-50 text-slate-500 border border-slate-200 rounded-lg px-3 py-2 text-sm cursor-not-allowed"
+                        />
+                    </div>
+                </div>
+                <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">Bio</label>
+                    <textarea
+                        disabled={initialData.isDeleted}
+                        name="bio"
+                        defaultValue={initialData.bio || ""}
+                        placeholder="Write a brief bio..."
+                        className={`w-full resize-none border border-slate-200 rounded-lg p-3 text-sm focus:outline-none focus:border-indigo-500 ${
+                            initialData.isDeleted ? "bg-slate-50 text-slate-400 cursor-not-allowed" : "bg-white text-slate-900"
+                        }`}
+                        rows={3}
+                    />
+                    <p className="text-xs text-slate-400 mt-1.5">This will be displayed on your profile.</p>
+                </div>
+                {initialData.isDeleted ? (
+                    <div className="pt-2">
+                        <div className="p-4 bg-rose-50 border border-rose-200 rounded-xl text-center">
+                            <p className="text-rose-600 font-medium tracking-tight">Account Deactivated</p>
+                            <p className="text-sm text-rose-500 mt-0.5">You can no longer update your profile.</p>
+                        </div>
+                    </div>
+                ) : (
+                    <div className="flex justify-end pt-2">
+                        <button
+                            type="submit"
+                            disabled={loading}
+                            className="btn-primary flex items-center gap-2 justify-center w-full sm:w-auto"
+                        >
+                            {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                            Save Changes
+                        </button>
+                    </div>
+                )}
+            </div>
+        </form>
+    );
+};
+
+export default ProfileForm;
